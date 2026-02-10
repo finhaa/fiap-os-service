@@ -42,3 +42,6 @@ lerna-debug.log*
 # Prisma
 prisma/*.db
 prisma/*.db-journal
+
+# Claude Code guidance file
+CLAUDE.md
