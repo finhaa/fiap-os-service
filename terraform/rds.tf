@@ -2,7 +2,7 @@
 data "terraform_remote_state" "core_infra" {
   backend = "s3"
   config = {
-    bucket = "fiap-tech-challenge-tf-state-118735037876"
+    bucket = "fiap-tech-challenge-tf-state-${data.aws_caller_identity.current.account_id}"
     key    = "kubernetes-core-infra/terraform.tfstate"
     region = var.aws_region
   }
