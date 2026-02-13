@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: os-service-migration
-  namespace: ftc-app
 spec:
   ttlSecondsAfterFinished: 300
   backoffLimit: 3

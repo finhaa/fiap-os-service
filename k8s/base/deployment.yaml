@@ -36,6 +36,10 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
+          envFrom:
+            - secretRef:
+                name: os-service-aws-creds
+                optional: true
           env:
             - name: NODE_ENV
               valueFrom:

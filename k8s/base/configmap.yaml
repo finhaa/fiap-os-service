@@ -6,4 +6,4 @@ data:
   NODE_ENV: "development"
   AWS_REGION: "us-east-1"
   EVENT_BUS_NAME: "fiap-tech-challenge-events-development"
-  SQS_QUEUE_URL: "https://sqs.us-east-1.amazonaws.com/ACCOUNT_ID/os-service-events-development"
+  SQS_QUEUE_URL: "https://sqs.us-east-1.amazonaws.com/305032652600/os-service-events-development"
