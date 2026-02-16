@@ -284,7 +284,6 @@ kubectl logs -f <pod-name> -n ftc-app
 
 - [billing-service](../billing-service) - Budget & Payment Management
 - [execution-service](../execution-service) - Production Management
-- [saga-orchestrator-service](../saga-orchestrator-service) - Saga Orchestration
 
 ## License
 

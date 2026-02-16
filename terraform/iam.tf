@@ -13,7 +13,7 @@ data "aws_iam_policy_document" "os_service_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "${replace(data.terraform_remote_state.core_infra.outputs.oidc_provider_arn, "/^(.*provider/)/", "")}:sub"
-      values   = ["system:serviceaccount:ftc-app:os-service"]
+      values   = ["system:serviceaccount:ftc-app-${var.environment}:os-service"]
     }
 
     condition {

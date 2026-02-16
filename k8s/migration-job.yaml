@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: os-service-migration
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: os-service-migration
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migration
+        image: 305032652600.dkr.ecr.us-east-1.amazonaws.com/os-service:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Starting database migration..."
+            export HOME=/tmp
+            export NPM_CONFIG_CACHE=/tmp/.npm
+            export PATH=$PATH:/tmp/node_modules/.bin
+            cd /tmp
+            echo "Installing Prisma CLI..."
+            npm install --no-save prisma@^6.0.0
+            echo "Pushing schema to database..."
+            cd /app
+            /tmp/node_modules/.bin/prisma db push --accept-data-loss
+            echo "Database schema applied successfully!"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: os-service-secrets
+              key: DATABASE_URL
+        - name: NODE_ENV
+          value: "production"

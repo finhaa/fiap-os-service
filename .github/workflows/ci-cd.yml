@@ -9,8 +9,6 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: os-service
-  EKS_CLUSTER_NAME: fiap-tech-challenge-cluster
-  NAMESPACE: ftc-app
 
 jobs:
   lint-and-test:
@@ -86,6 +84,7 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -113,8 +112,23 @@ jobs:
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig \
-            --name ${{ env.EKS_CLUSTER_NAME }} \
+            --name fiap-tech-challenge-eks-development \
             --region ${{ env.AWS_REGION }}
+
+      - name: Update AWS Credentials in Kubernetes
+        run: |
+          kubectl create secret generic os-service-aws-creds -n ftc-app-development \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --from-literal=AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }} \
+            --from-literal=AWS_REGION=${{ env.AWS_REGION }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Run Database Migrations
+        run: |
+          kubectl delete job os-service-migration -n ftc-app-development --ignore-not-found=true
+          kubectl apply -f k8s/migration-job.yaml -n ftc-app-development
+          kubectl wait --for=condition=complete --timeout=300s job/os-service-migration -n ftc-app-development
 
       - name: Deploy to EKS
         run: |
@@ -122,12 +136,12 @@ jobs:
 
       - name: Wait for deployment
         run: |
-          kubectl rollout status deployment/os-service -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/os-service -n ftc-app-development --timeout=5m
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n ${{ env.NAMESPACE }} -l app=os-service
-          kubectl get svc -n ${{ env.NAMESPACE }} os-service
+          kubectl get pods -n ftc-app-development -l app=os-service
+          kubectl get svc -n ftc-app-development os-service
 
   deploy-production:
     name: Deploy to Production
@@ -151,8 +165,23 @@ jobs:
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig \
-            --name ${{ env.EKS_CLUSTER_NAME }} \
+            --name fiap-tech-challenge-eks-production \
             --region ${{ env.AWS_REGION }}
+
+      - name: Update AWS Credentials in Kubernetes
+        run: |
+          kubectl create secret generic os-service-aws-creds -n ftc-app-production \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --from-literal=AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }} \
+            --from-literal=AWS_REGION=${{ env.AWS_REGION }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Run Database Migrations
+        run: |
+          kubectl delete job os-service-migration -n ftc-app-production --ignore-not-found=true
+          kubectl apply -f k8s/migration-job.yaml -n ftc-app-production
+          kubectl wait --for=condition=complete --timeout=300s job/os-service-migration -n ftc-app-production
 
       - name: Deploy to EKS
         run: |
@@ -160,14 +189,14 @@ jobs:
 
       - name: Wait for deployment
         run: |
-          kubectl rollout status deployment/os-service -n ${{ env.NAMESPACE }} --timeout=10m
+          kubectl rollout status deployment/os-service -n ftc-app-production --timeout=10m
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n ${{ env.NAMESPACE }} -l app=os-service
-          kubectl get svc -n ${{ env.NAMESPACE }} os-service
+          kubectl get pods -n ftc-app-production -l app=os-service
+          kubectl get svc -n ftc-app-production os-service
 
       - name: Run smoke tests
         run: |
-          ENDPOINT=$(kubectl get ingress os-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          ENDPOINT=$(kubectl get ingress os-service -n ftc-app-production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           curl --fail --retry 3 --retry-delay 5 "http://${ENDPOINT}/api/v1/health" || exit 1

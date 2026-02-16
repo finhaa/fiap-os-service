@@ -10,8 +10,6 @@ resources:
   - hpa.yaml
   - ingress.yaml
 
-namespace: ftc-app
-
 commonLabels:
   app.kubernetes.io/name: os-service
   app.kubernetes.io/part-of: fiap-tech-challenge

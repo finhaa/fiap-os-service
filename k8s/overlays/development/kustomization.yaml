@@ -1,14 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: ftc-app
+namespace: ftc-app-development
 
 resources:
   - ../../base
 
 images:
   - name: os-service
-    newName: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/os-service
+    newName: 305032652600.dkr.ecr.us-east-1.amazonaws.com/os-service
     newTag: latest
 
 replicas:
@@ -23,3 +23,37 @@ patches:
     target:
       kind: ConfigMap
       name: os-service-config
+  - patch: |-
+      - op: add
+        path: /spec/rules/0/http/paths/-
+        value:
+          path: /api/v1/budgets
+          pathType: Prefix
+          backend:
+            service:
+              name: dev-billing-service
+              port:
+                number: 80
+      - op: add
+        path: /spec/rules/0/http/paths/-
+        value:
+          path: /api/v1/payments
+          pathType: Prefix
+          backend:
+            service:
+              name: dev-billing-service
+              port:
+                number: 80
+      - op: add
+        path: /spec/rules/0/http/paths/-
+        value:
+          path: /api/v1/executions
+          pathType: Prefix
+          backend:
+            service:
+              name: dev-execution-service
+              port:
+                number: 80
+    target:
+      kind: Ingress
+      name: os-service
